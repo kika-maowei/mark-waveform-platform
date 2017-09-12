@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.kikakeyboard.waveform.mapper.VoiceMapper">
+
+    <update id="updateByMarkerAfterSubmit" parameterType="Voice">
+        UPDATE t_voice SET
+        status = 3,
+        validity=#{validity},
+        sex=#{sex},
+        noise=#{noise},
+        language=#{language},
+        accent=#{accent},
+        swath=#{swath},
+        content=#{content},
+        start=#{start},
+        end=#{end}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateAllByMarkerAfterStop" >
+        UPDATE t_voice AS t1, r_user_voice AS t2
+        <set>
+            <if test="status == 4">
+                t1.packages = 2
+            </if>
+            <if test="status == 5">
+                t1.returnt = t1.returnt+1,
+                t1.packages = 1
+            </if>
+            <if test="status == 8">
+                t1.status = #{status},
+                t1.packages = 0
+            </if>
+            <if test="status == 1 or status == 0">
+              t1.status = #{status}
+            </if>
+        </set>
+        WHERE t1.id = t2.voice_id AND t2.user_id = #{userId} and t2.create_time=#{date}
+    </update>
+
+</mapper>

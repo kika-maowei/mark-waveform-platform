@@ -1,23 +1,26 @@
 package com.kikakeyboard.waveform.controller;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.kikakeyboard.waveform.domain.Voice;
 import com.kikakeyboard.waveform.domain.VoicePackage;
 import com.kikakeyboard.waveform.service.impl.VoiceServiceImpl;
 import com.kikakeyboard.waveform.utils.JSONResult;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.ibatis.annotations.Param;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
+
+import static com.kikakeyboard.waveform.constant.Constants.*;
 
 /**
  * @Author 毛伟
@@ -25,7 +28,7 @@ import java.util.List;
  * @Date 16/11/7  下午4:40
  */
 @Slf4j
-@Controller
+@RestController
 @RequestMapping("/voice")
 public class VoiceController extends BaseController {
     @Resource
@@ -35,59 +38,79 @@ public class VoiceController extends BaseController {
      * 标注员的controller start
      */
     @RequestMapping(value = "/list-by-marker-id")
-    @ResponseBody
     public JSONResult listByMarkerId(HttpServletRequest request) {
-        return null;
+        List<VoicePackage> voicePackageList = voiceService.listByMarkerId(getUserId(request));
+        JSONObject result = new JSONObject();
+        result.put("voice_package", voicePackageList);
+        return JSONResult.getSuccessWithDataJSONResult(result);
     }
 
     @RequestMapping(value = "/new-task-by-marker")
-    @ResponseBody
     public JSONResult newTaskByMarker(HttpServletRequest request) {
         VoicePackage voicePackage = new VoicePackage();
         voicePackage.setMarkerId(getUserId(request));
-        voicePackage.setCreateTime(LocalDate.now());
+        voicePackage.setMarkTime(LocalDate.now());
+        voicePackage.setPackageId(Long.parseLong(voicePackage.getMarkTime().toString().replaceAll("-", "")+voicePackage.getMarkerId()));
+        voicePackage.setStatus(PACKAGE_STATUS_MARKING);
+
+        int flag = voiceService.checkIfMarkerCanNewTask(voicePackage.getPackageId(), voicePackage.getMarkerId());
+        if (flag == HAVE_NEW_TASK_TODAY) {
+            return JSONResult.INVALID_REQUEST_PARAM;
+        }
+
+        if (flag == EXIT_UNSUBMIT_PACKAGE) {
+            return JSONResult.INVALID_REQUEST_PARAM;
+        }
+
+        if (flag == NO_VOICE) {
+            return JSONResult.NO_DATA;
+        }
+
         VoicePackage resultVoicePackage = voiceService.newTaskByMarker(voicePackage);
         JSONObject result = new JSONObject();
-        result.put("package_id", resultVoicePackage.getId());
-        result.put("create_time", resultVoicePackage.getCreateTime());
+        result.put("voice_package", resultVoicePackage);
         return JSONResult.getSuccessWithDataJSONResult(result);
     }
 
     @RequestMapping(value = "/get-by-random")
-    @ResponseBody
-    public JSONResult getByRandom(@RequestParam("package_id") int packageId) {
-        Voice voice = voiceService.getByRandom(packageId);
-        JSONObject result = new JSONObject();
-        result.put("voice", voice);
-        return JSONResult.getSuccessWithDataJSONResult(result);
+    public JSONResult getByRandom(@RequestParam("packageId") long packageId) {
+        Optional<Voice> voice = voiceService.getByRandom(packageId);
+        if (voice.isPresent()) {
+            JSONObject result = new JSONObject();
+            result.put("voice", voice.get());
+            return JSONResult.getSuccessWithDataJSONResult(result);
+        }
+        return JSONResult.NO_DATA;
     }
 
     @RequestMapping(value = "/list-by-package-id")
-    @ResponseBody
-    public JSONResult listByPackageId(@RequestParam("package_id") int packageId) {
-        List<Voice> voiceList = voiceService.listByMarkerIdAndDate(packageId);
-        JSONArray voiceArray = JSONArray.parseArray(voiceList.toString());
+    public JSONResult listByPackageId(@RequestParam("packageId") long packageId) {
+        List<Voice> voiceList = voiceService.listByPackageId(packageId);
+        //JSONArray voiceArray = JSONArray.parseArray(voiceList.toString());
         JSONObject result = new JSONObject();
-        result.put("voice_list", voiceArray);
+        result.put("voice_list", voiceList);
         return JSONResult.getSuccessWithDataJSONResult(result);
     }
 
     @RequestMapping(value = "/get-by-voice-id")
     @ResponseBody
-    public JSONResult getByVoiceId(HttpServletRequest request) {
-        return null;
+    public JSONResult getByVoiceId(@RequestParam("id") String voiceId) {
+        Voice voice = voiceService.getByVoiceId(voiceId);
+        JSONObject result = new JSONObject();
+        result.put("voice", voice);
+        return JSONResult.getSuccessWithDataJSONResult(result);
     }
 
     @RequestMapping(value = "/submit-by-marker")
-    @ResponseBody
-    public JSONResult submitByMarker(@RequestParam("voice") Voice voice) {
+    public JSONResult submitByMarker(@RequestParam("voice") String voiceString) {
+        Voice voice = JSON.parseObject(voiceString, Voice.class);
+        voice.setStatus(VOICE_STATUS_SUBMIT);
         return voiceService.submitByMarker(voice) ? JSONResult.getSuccessWithDataJSONResult(null) : JSONResult.SERVICE_FATAL_ERROR;
     }
 
     @RequestMapping(value = "/upload-by-marker")
-    @ResponseBody
-    public JSONResult uploadByMarker(@RequestParam("package_id") int packageId) {
-        return voiceService.uploadByMarkerIdAndDate(packageId) ? JSONResult.getSuccessWithDataJSONResult(null) : JSONResult.SERVICE_FATAL_ERROR;
+    public JSONResult uploadByMarker(@RequestParam("packageId") long packageId) {
+        return voiceService.uploadByMarker(packageId) ? JSONResult.getSuccessWithDataJSONResult(null) : JSONResult.SERVICE_FATAL_ERROR;
     }
 
     /**
@@ -96,51 +119,56 @@ public class VoiceController extends BaseController {
      */
 
     @RequestMapping(value = "/new-task-by-checker")
-    @ResponseBody
     public JSONResult newTaskByChecker(HttpServletRequest request) {
-        return null;
+        int checkerId = getUserId(request);
+
+        int flag = voiceService.checkIfCheckerCanNewTask(checkerId);
+
+        if (flag == EXIT_CHECKING_PACKAGE) {
+            return JSONResult.NO_DATA;
+        }
+        if (flag == NO_UNCHECKED_PACKAGE) {
+            return JSONResult.INVALID_REQUEST_PARAM;
+        }
+
+        VoicePackage resultVoicePackage = voiceService.newTaskByChecker(checkerId);
+        JSONObject result = new JSONObject();
+        result.put("voice_package", resultVoicePackage);
+        return JSONResult.getSuccessWithDataJSONResult(result);
     }
 
     @RequestMapping(value = "/list-by-checker-id")
-    @ResponseBody
     public JSONResult listByCheckerId(HttpServletRequest request) {
-        return null;
+        List<VoicePackage> voicePackageList = voiceService.listByCheckerId(getUserId(request));
+        JSONObject result = new JSONObject();
+        result.put("voice_package", voicePackageList);
+        return JSONResult.getSuccessWithDataJSONResult(result);
     }
 
-    @RequestMapping(value = "/list-by-checker-id-and-date")
-    @ResponseBody
-    public JSONResult listByCheckerIdAndDate(HttpServletRequest request) {
-        return null;
+
+    @RequestMapping(value = "/submit-by-checker")
+    public JSONResult submitByChecker(@RequestParam("status") int status, @RequestParam("id") String voiceId , @RequestParam("remark") String remark,  HttpServletRequest request) {
+        return voiceService.submitByChecker(voiceId, status, getUserId(request), remark) ? JSONResult.getSuccessWithDataJSONResult(null) : JSONResult.SERVICE_FATAL_ERROR;
     }
 
-    @RequestMapping(value = "/update-by-checker-id-and-voice-id")
-    @ResponseBody
-    public JSONResult updateByCheckerIdAndVoiceId(HttpServletRequest request) {
-        return null;
-    }
-
-    @RequestMapping(value = "/upload-by-checker-id")
-    @ResponseBody
-    public JSONResult uploadByCheckerId(HttpServletRequest request) {
-        return null;
+    @RequestMapping(value = "/upload-by-checker")
+    public JSONResult uploadByChecker(@RequestParam("packageId") long packageId) {
+        return voiceService.uploadByChecker(packageId) ? JSONResult.getSuccessWithDataJSONResult(null) : JSONResult.SERVICE_FATAL_ERROR;
     }
 
     @RequestMapping(value = "/get-total-info-by-checker-id")
-    @ResponseBody
     public JSONResult getTotalInfoByCheckerId(HttpServletRequest request) {
-        return null;
+        return parseJsonResult(voiceService.getTotalInfoByCheckerId(getUserId(request)));
     }
 
     @RequestMapping(value = "/get-month-info-by-checker-id")
-    @ResponseBody
-    public JSONResult getMonthInfoByCheckerId(HttpServletRequest request) {
-        return null;
+    public JSONResult getMonthInfoByCheckerId(@RequestParam("date") String yearAndMonth , HttpServletRequest request) {
+        return parseJsonResult(voiceService.getMonthInfoByCheckerId(getUserId(request), yearAndMonth));
     }
 
     @RequestMapping(value = "/get-day-info-by-checker-id")
-    @ResponseBody
-    public JSONResult getDayInfoByCheckerId(HttpServletRequest request) {
-        return null;
+    public JSONResult getDayInfoByCheckerId(@RequestParam("date") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate checkTime, HttpServletRequest request) {
+        return parseJsonResult(voiceService.getDayInfoByCheckerId(getUserId(request), checkTime));
     }
 
     /**
@@ -149,10 +177,31 @@ public class VoiceController extends BaseController {
      */
 
     @RequestMapping(value = "/get-the-day-before-info")
-    @ResponseBody
-    public JSONResult getTheDayBeforeInfo(HttpServletRequest request) {
-        return null;
+    public JSONResult getTheDayBeforeInfo() {
+        List<VoicePackage> voicePackageList = voiceService.getTheDayBeforeInfo();
+        JSONObject result = new JSONObject();
+        result.put("voice_package", voicePackageList);
+        return JSONResult.getSuccessWithDataJSONResult(result);
     }
 
 
+    /**
+     * 管理员的controller end
+     */
+
+    private int getPassSum(List<VoicePackage> voicePackageList) {
+        return voicePackageList.stream().mapToInt(e-> e.getPassCount()).sum();
+    }
+
+    private int getNotPassSum(List<VoicePackage> voicePackageList) {
+        return voicePackageList.stream().mapToInt(e -> e.getNotPassCount()).sum();
+    }
+
+    private JSONResult parseJsonResult(List<VoicePackage> voicePackageList) {
+        JSONObject result = new JSONObject();
+        result.put("pass_count", getPassSum(voicePackageList));
+        result.put("not_pass_count", getNotPassSum(voicePackageList));
+
+        return JSONResult.getSuccessWithDataJSONResult(result);
+    }
 }

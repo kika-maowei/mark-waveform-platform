@@ -1,9 +1,10 @@
 package com.kikakeyboard.waveform.domain;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 import org.apache.ibatis.type.Alias;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 /**
  * @Author 毛伟
@@ -16,9 +17,8 @@ public class Voice {
     private String id;
     private Property property;
     private int status;
-    private int packageId;
-    private int markerId;
+    private long packageId;
     private int checkerId;
-    private LocalDate markTime;
-    private LocalDate checkTime;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern ="yyyy-MM-dd")
+    private LocalDateTime createTime;
 }

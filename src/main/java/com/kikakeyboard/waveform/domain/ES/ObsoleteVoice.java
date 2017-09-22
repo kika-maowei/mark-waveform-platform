@@ -2,6 +2,7 @@ package com.kikakeyboard.waveform.domain.ES;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.kikakeyboard.waveform.domain.Property;
 import lombok.Data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.elasticsearch.annotations.DateFormat;
@@ -13,17 +14,16 @@ import java.time.LocalDate;
 
 /**
  * @Author 毛伟
- * @Date 9/11/17  18:14
+ * @Date 9/18/17  10:19
  */
 @Data
-@Document(indexName = "user_voice", type = "log")
-public class UserVoice {
+@Document(indexName = "obsolete_voice", type = "voice")
+public class ObsoleteVoice {
     @Id
     @JsonIgnore
     private String id;
-    private int userId;
-    private String voiceId;
+    private Property property;
     @Field(type = FieldType.Date, format = DateFormat.custom, pattern = "yyyy-MM-dd")
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern ="yyyy-MM-dd")
-    private LocalDate createTime ;
+    private LocalDate createTime;
 }

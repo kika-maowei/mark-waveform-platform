@@ -15,7 +15,8 @@ public abstract class BaseController {
     public int getUserId(HttpServletRequest request) {
         HttpSession session = request.getSession();
         User user = (User) session.getAttribute("User");
-        return user.getId();
+        return 2;
+        //return user.getId();
     }
 
     public String getUserName(HttpServletRequest request) {

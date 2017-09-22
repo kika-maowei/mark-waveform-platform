@@ -3,8 +3,6 @@ package com.kikakeyboard.waveform.mapper;
 import com.kikakeyboard.waveform.domain.ES.UserVoice;
 import org.springframework.data.elasticsearch.repository.ElasticsearchRepository;
 
-import java.util.List;
-
 /**
  * @Author 毛伟
  * @Date 9/11/17  18:16

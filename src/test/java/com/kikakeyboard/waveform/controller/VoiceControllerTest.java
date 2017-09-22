@@ -4,6 +4,7 @@ import com.kikakeyboard.waveform.BaseTest;
 import com.kikakeyboard.waveform.domain.Property;
 import com.kikakeyboard.waveform.domain.Voice;
 import com.kikakeyboard.waveform.domain.VoicePackage;
+import com.kikakeyboard.waveform.mapper.VoiceMapper;
 import com.kikakeyboard.waveform.mapper.VoicePackageMapper;
 import com.kikakeyboard.waveform.service.VoiceService;
 import com.kikakeyboard.waveform.service.impl.VoiceServiceImpl;
@@ -13,7 +14,10 @@ import org.junit.Test;
 import javax.annotation.Resource;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
+import static com.kikakeyboard.waveform.constant.Constants.VOICE_VALID;
 import static org.junit.Assert.*;
 
 /**
@@ -26,6 +30,8 @@ public class VoiceControllerTest extends BaseTest {
     VoiceServiceImpl voiceService;
     @Resource
     VoicePackageMapper voicePackageMapper;
+    @Resource
+    VoiceMapper voiceMapper;
 
     @Test
     public void listByMarkerId() throws Exception {
@@ -35,7 +41,8 @@ public class VoiceControllerTest extends BaseTest {
     public void newTaskByMarker() throws Exception {
         VoicePackage voicePackage = new VoicePackage();
         voicePackage.setMarkerId(1);
-        voicePackage.setCreateTime(LocalDate.now());
+        voicePackage.setMarkTime(LocalDate.now());
+        voicePackage.setPackageId(Long.parseLong(voicePackage.getMarkTime().toString().replaceAll("-","") +voicePackage.getMarkerId()));
         voiceService.newTaskByMarker(voicePackage);
         System.out.println(voicePackage.getId());
     }
@@ -59,7 +66,6 @@ public class VoiceControllerTest extends BaseTest {
         voice.setId("adfadf");
         voice.setStatus(1);
         Property property = new Property();
-        property.setName("maowei");
         voice.setProperty(property);
         voiceService.submitByMarker(voice);
     }
@@ -68,7 +74,6 @@ public class VoiceControllerTest extends BaseTest {
     public void uploadByMarkerIdAndDate() throws Exception {
         VoicePackage voicePackage = new VoicePackage();
         voicePackage.setMarkerId(1);
-        voicePackage.setCreateTime(LocalDate.now());
         System.out.println(voicePackageMapper.save(voicePackage));
         System.out.println(voicePackage.getId());
         //voiceService.uploadByMarkerIdAndDate(voicePackage);
@@ -77,6 +82,8 @@ public class VoiceControllerTest extends BaseTest {
 
     @Test
     public void newTaskByChecker() throws Exception {
+        VoicePackage voicePackage = voiceService.newTaskByChecker(1);
+        System.out.println(voicePackage);
     }
 
     @Test
@@ -109,6 +116,23 @@ public class VoiceControllerTest extends BaseTest {
 
     @Test
     public void getTheDayBeforeInfo() throws Exception {
+    }
+
+    @Test
+    public void test() {
+
+        //List<VoicePackage> voicePackageList1 = voicePackageMapper.listByCheckerId(2);
+        //System.out.println(voicePackageList1);
+        //List<VoicePackage> voicePackageList = voiceService.getTotalInfoByCheckerId(2);
+        //System.out.println(voicePackageList);
+        //System.out.println(voicePackageList.get(0).getPassCount());
+        //System.out.println(voicePackageList.stream().mapToInt(e-> e.getPassCount()).sum());
+
+
+        List<Voice> voiceList = voiceMapper.listByPackageId(1);
+        System.out.println(voiceList);
+        int sum =  (int) voiceList.stream().filter(e -> e.getProperty().getValidity() == VOICE_VALID).count();
+        System.out.println(sum);
     }
 
 }

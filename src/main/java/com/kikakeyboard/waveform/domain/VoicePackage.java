@@ -1,12 +1,10 @@
 package com.kikakeyboard.waveform.domain;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 import org.apache.ibatis.type.Alias;
 
 import java.time.LocalDate;
-
-import static com.kikakeyboard.waveform.constant.Constants.PACKAGE_CHECK_COUNT_ZERO;
-import static com.kikakeyboard.waveform.constant.Constants.PACKAGE_STATUS_UNCHECKED;
 
 /**
  * @Author 毛伟
@@ -16,9 +14,23 @@ import static com.kikakeyboard.waveform.constant.Constants.PACKAGE_STATUS_UNCHEC
 @Alias("VoicePackage")
 public class VoicePackage {
     private int id;
+    private long packageId;
     private int markerId;
+    private int checkerId;
+    private int validCount;
+    private int invalidCount;
+    private int passCount;
+    private int notPassCount;
     private int status ;
     private float passRate;
+    private float totalTime;
     private int checkCount;
-    private LocalDate createTime;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern ="yyyy-MM-dd")
+    private LocalDate markTime;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern ="yyyy-MM-dd")
+    private LocalDate checkTime;
+
+    private String markerName;
+    private String checkerName;
 }

@@ -1,16 +1,21 @@
 package com.kikakeyboard.waveform.domain;
 
 import lombok.Data;
-
+import org.apache.ibatis.type.Alias;
 
 /**
  * @Author 毛伟
- * @Date 8/23/17  15:07
+ * @Date 9/18/17  18:49
  */
+@Alias(value = "VoiceCopy")
 @Data
-public class Property {
-
+public class VoiceCopy {
+    //语音ID
+    private int id;
+    //文件地址
     private String url;
+    //文件状态
+    private int status;
     //有效性：0-无效；1-有效
     private int validity;
     //性别：0-不确定；1-男性；2-女性
@@ -25,10 +30,14 @@ public class Property {
     private int swath;
     //内容
     private String content;
+    //打回次数
+    private int returnt;
     //起始时间点
     private float start;
     //终止时间点
     private float end;
+    //语音包状态
+    private int packages;
     //批注，检查员使用
-    private String remark;
+    private String note;
 }

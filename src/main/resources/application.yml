@@ -13,11 +13,15 @@ spring:
             repositories:
               enabled: true
 
+
 #mybatis
 mybatis:
     mapper-locations: classpath:mybatis/*.xml
     type-aliases-package: com.kikakeyboard.waveform
     config-location: classpath:spring/mybatis.xml
+
+server:
+  port: 63342
 
 
 

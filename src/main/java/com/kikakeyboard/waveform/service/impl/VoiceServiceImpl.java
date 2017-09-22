@@ -68,6 +68,7 @@ public class VoiceServiceImpl implements VoiceService {
     @Override
     public VoicePackage newTaskByMarker(VoicePackage voicePackage) {
         voicePackageMapper.save(voicePackage);
+        getByRandom(voicePackage.getPackageId());
         return voicePackage;
     }
 
